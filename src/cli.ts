@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import { clearConfig, readConfig, redactToken } from "./config.js";
 import { exportRecordings } from "./export.js";
@@ -111,8 +112,15 @@ function createStatusRenderer() {
 }
 
 const program = new Command();
-program.name("plaud").description("Export Plaud recordings and transcripts").version("0.1.0");
 
+const require = createRequire(import.meta.url);
+const packageJson = require("../package.json") as { version?: unknown };
+const cliVersion =
+  typeof packageJson?.version === "string" && packageJson.version.trim()
+    ? packageJson.version
+    : "0.0.0";
+
+program.name("plaud").description("Export Plaud recordings and transcripts").version(cliVersion);
 program
   .command("auth")
   .description("Manage Plaud auth token")

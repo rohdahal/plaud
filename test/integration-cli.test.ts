@@ -38,6 +38,23 @@ async function runCli(args: string[], env: Record<string, string | undefined>) {
   };
 }
 
+async function readPackageVersion(): Promise<string> {
+  const packageJsonPath = path.resolve(process.cwd(), "package.json");
+  const raw = await fs.readFile(packageJsonPath, "utf8");
+  const parsed = JSON.parse(raw) as { version?: unknown };
+  if (typeof parsed.version !== "string" || !parsed.version.trim()) {
+    throw new Error("package.json is missing a valid version string");
+  }
+  return parsed.version;
+}
+
+test("cli --version matches package.json version", async () => {
+  const expectedVersion = await readPackageVersion();
+  const r = await runCli(["--version"], {});
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.stdout, expectedVersion);
+});
+
 test("auth show --json returns v1 envelope on missing auth (exit 2)", async () => {
   await withTempDir(async (tmp) => {
     const r = await runCli(["auth", "show", "--json"], {
@@ -77,4 +94,3 @@ test("doctor --json returns v1 envelope on missing auth (exit 2)", async () => {
     assert.ok(parsed.meta?.checks?.some?.((c: any) => c?.name === "token.present"));
   });
 });
-
