@@ -1,10 +1,19 @@
 {
   "name": "plaud",
   "version": "0.1.0",
-  "description": "CLI to export Plaud recordings with speaker-labeled transcripts",
+  "description": "Agent-first CLI + skill to export/download Plaud recordings (transcripts, summaries, audio)",
   "license": "MIT",
   "author": "Daniel G Wilson",
   "type": "module",
+  "keywords": [
+    "plaud",
+    "cli",
+    "export",
+    "transcript",
+    "audio",
+    "agent",
+    "skills"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/danielgwilson/plaud.git"
@@ -13,6 +22,9 @@
     "url": "https://github.com/danielgwilson/plaud/issues"
   },
   "homepage": "https://github.com/danielgwilson/plaud#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "plaud": "dist/cli.js"
   },
@@ -25,6 +37,7 @@
     "pretest": "npm run build",
     "test": "tsx --test",
     "start": "node dist/cli.js",
+    "prepublishOnly": "npm test",
     "prepare": "npm run build"
   },
   "files": [

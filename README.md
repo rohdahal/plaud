@@ -5,6 +5,12 @@
 
 Export all your Plaud recordings with speaker-labeled transcripts and optional AI summaries.
 
+## Disclaimer
+
+This is an **unofficial** project (not affiliated with Plaud). It uses a captured Plaud bearer token and private web endpoints, so it may break if Plaud changes their web app.
+
+Security note: **do not** share tokens or `*.har` files (HARs often contain `Authorization` headers).
+
 ## Install (npm)
 
 Global (recommended for frequent use):
