@@ -5,6 +5,14 @@
   "license": "MIT",
   "author": "Daniel G Wilson",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielgwilson/plaud.git"
+  },
+  "bugs": {
+    "url": "https://github.com/danielgwilson/plaud/issues"
+  },
+  "homepage": "https://github.com/danielgwilson/plaud#readme",
   "bin": {
     "plaud": "dist/cli.js"
   },
