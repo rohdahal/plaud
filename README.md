@@ -62,6 +62,12 @@ Preferred (easy onboarding, stores token locally):
 plaud auth login
 ```
 
+To use your existing default browser session instead, run:
+
+```bash
+plaud auth login --default
+```
+
 Verify:
 
 ```bash

@@ -2,6 +2,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { spawn } from "node:child_process";
+import readline from "node:readline/promises";
 import { Command } from "commander";
 import { clearConfig, readConfig, redactToken } from "./config.js";
 import { exportRecordings } from "./export.js";
@@ -73,6 +75,58 @@ function defaultZipPath(): string {
 function defaultDownloadDir(): string {
   const date = new Date().toISOString().split("T")[0];
   return path.join(process.cwd(), `plaud-download-${date}`);
+}
+
+async function openUrlInDefaultBrowser(url: string): Promise<void> {
+  if (process.platform === "darwin") {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn("open", [url], { stdio: "ignore" });
+      child.once("error", reject);
+      child.once("close", (code) => (code === 0 ? resolve() : reject(new Error(`open exited ${code}`))));
+    });
+    return;
+  }
+
+  if (process.platform === "win32") {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn("cmd", ["/c", "start", "", url], { stdio: "ignore", windowsHide: true });
+      child.once("error", reject);
+      child.once("close", (code) => (code === 0 ? resolve() : reject(new Error(`start exited ${code}`))));
+    });
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("xdg-open", [url], { stdio: "ignore" });
+    child.once("error", reject);
+    child.once("close", (code) => (code === 0 ? resolve() : reject(new Error(`xdg-open exited ${code}`))));
+  });
+}
+
+async function promptHarPath(): Promise<string> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stderr,
+  });
+  try {
+    return (await rl.question("File path (or press Enter to cancel): ")).trim();
+  } finally {
+    rl.close();
+  }
+}
+
+async function runDefaultBrowserHarFlow(
+  url: string,
+  onStatus?: (msg: string) => void,
+): Promise<string> {
+  onStatus?.("Opening Plaud in your default browser");
+  await openUrlInDefaultBrowser(url);
+  onStatus?.("Waiting for Plaud API request with auth header");
+  const harPath = await promptHarPath();
+  if (!harPath) {
+    throw new Error("Login canceled");
+  }
+  return await importTokenFromHar(harPath);
 }
 
 function formatElapsed(elapsedMs: number): string {
@@ -213,9 +267,11 @@ program
       .option("--url <url>", "Login URL to open", "https://app.plaud.ai")
       .option("--channel <channel>", "Browser channel (chrome or msedge)", "chrome")
       .option("--headless", "Run headless (not recommended for login)", false)
+      .option("--default", "Use default browser + HAR import flow", false)
       .option("--force", "Capture even if an existing token is valid", false)
       .option("--json", "Print JSON")
-      .action(async (opts: { timeoutMs: number; url: string; channel: string; headless?: boolean; force?: boolean; json?: boolean }) => {
+      .action(async (opts: { timeoutMs: number; url: string; channel: string; headless?: boolean; default?: boolean; force?: boolean; json?: boolean }) => {
+        const status = opts.json ? null : createStatusRenderer();
         try {
           const existing = await resolveAuthToken();
           if (existing && !opts.force) {
@@ -232,7 +288,32 @@ program
 	          }
 	        }
 
-	        const status = opts.json ? null : createStatusRenderer();
+          if (opts.default) {
+            if (opts.json) {
+              printJson(
+                fail(makeError(null, { code: "VALIDATION", message: "`auth login --default` is interactive and does not support `--json`." })),
+              );
+              process.exitCode = 2;
+              return;
+            }
+            status?.start("Opening Plaud in your default browser");
+            const token = await runDefaultBrowserHarFlow(opts.url, (msg) => status?.update({ msg }));
+            status?.start("Importing HAR token");
+            status?.update({ msg: "Saving token" });
+            const saved = await saveToken(token);
+            status?.update({ msg: "Validating token" });
+            const validation = await validateToken(saved);
+            status?.done(validation.ok ? "Login complete" : "Token saved (validation failed)");
+            if (!validation.ok) process.exitCode = 1;
+
+            // Keep stdout quiet; print user guidance to stderr.
+            // eslint-disable-next-line no-console
+            console.error(`Saved Plaud token (${redactToken(saved)}) to ~/.config/plaud/config.json (mode 0600).`);
+            // eslint-disable-next-line no-console
+            console.error("Next: `plaud auth status` or `plaud doctor`.");
+            return;
+          }
+
 	        status?.start("Waiting for login");
 	        const token = await captureTokenFromBrowser({
 	          url: opts.url,
@@ -261,6 +342,7 @@ program
 	        // eslint-disable-next-line no-console
 	        console.error("Next: `plaud auth status` or `plaud doctor`.");
         } catch (err: any) {
+          status?.done("Login failed");
           process.exitCode = 1;
           if (opts.json) {
             printJson(fail(makeError(err)));
