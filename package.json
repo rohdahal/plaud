@@ -1,0 +1,45 @@
+{
+  "name": "plaud",
+  "version": "0.1.0",
+  "description": "CLI to export Plaud recordings with speaker-labeled transcripts",
+  "license": "MIT",
+  "author": "Daniel G Wilson",
+  "type": "module",
+  "bin": {
+    "plaud": "dist/cli.js"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json && node -e \"require('node:fs').chmodSync('dist/cli.js',0o755)\"",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck",
+    "pretest": "npm run build",
+    "test": "tsx --test",
+    "start": "node dist/cli.js",
+    "prepare": "npm run build"
+  },
+  "files": [
+    "dist/",
+    "skills/",
+    "docs/",
+    "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "archiver": "^6.0.2",
+    "commander": "^12.1.0",
+    "playwright-core": "^1.51.1"
+  },
+  "devDependencies": {
+    "@types/archiver": "^7.0.0",
+    "@types/node": "^25.3.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

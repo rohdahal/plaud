@@ -1,0 +1,101 @@
+# plaud (CLI)
+
+Export all your Plaud recordings with speaker-labeled transcripts and optional AI summaries.
+
+## Install (local)
+
+```bash
+cd plaud/plaud-cli
+npm install
+npm link
+```
+
+Requirements:
+- Node.js 22+ (tested on Node 24)
+
+## Auth
+
+Preferred (easy onboarding, stores token locally):
+
+```bash
+plaud auth login
+```
+
+Verify:
+
+```bash
+plaud auth status
+plaud doctor
+```
+
+Fallbacks:
+
+```bash
+plaud auth set --stdin
+plaud auth import-har /path/to/web.plaud.ai.har
+```
+
+Or via env var (no local storage):
+
+```bash
+export PLAUD_AUTH_TOKEN="eyJ..."
+```
+
+Tip (Node 22+): you can also use Node’s `--env-file` if you want to load a local `.env` without adding any dependency to the CLI:
+
+```bash
+node --env-file .env "$(command -v plaud)" auth status --json
+```
+
+## Export
+
+Create a single ZIP (default):
+
+```bash
+plaud recordings export --zip
+```
+
+Export to a directory:
+
+```bash
+plaud recordings export --out ./plaud-transcripts --formats txt,json,md
+```
+
+## Download a single recording
+
+```bash
+plaud recordings list --json --max 10
+plaud recordings download <id> --out ./plaud-download --what transcript,summary,json
+plaud recordings download <id> --out ./plaud-download --what audio --audio-format opus
+```
+
+Notes:
+- `plaud recordings export` prints a JSON summary to stdout; progress goes to stderr.
+- Tokens are stored at `~/.config/plaud/config.json` with `0600` permissions.
+
+## Agent-first JSON contract
+
+See `docs/CONTRACT_V1.md`.
+
+## Install (npm)
+
+Global (recommended for frequent use):
+
+```bash
+npm i -g plaud
+plaud auth login
+```
+
+No install (convenient for agents/one-offs):
+
+```bash
+npx -y plaud auth status --json
+```
+
+## Install (skill)
+
+Once this lives in a GitHub repo, you’ll be able to add the agent skill with:
+
+```bash
+npx -y skills add danielgwilson/plaud --skill plaud -g -y
+```
