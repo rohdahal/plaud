@@ -1,6 +1,30 @@
-# plaud (CLI)
+# plaud
+
+![CI](https://github.com/danielgwilson/plaud/actions/workflows/ci.yml/badge.svg)
+![npm](https://img.shields.io/npm/v/plaud)
 
 Export all your Plaud recordings with speaker-labeled transcripts and optional AI summaries.
+
+## Install (npm)
+
+Global (recommended for frequent use):
+
+```bash
+npm i -g plaud
+plaud auth login
+```
+
+No install (convenient for agents/one-offs):
+
+```bash
+npx -y plaud auth status --json
+```
+
+## Install (skill)
+
+```bash
+npx -y skills add danielgwilson/plaud --skill plaud -g -y
+```
 
 ## Install (local)
 
@@ -76,26 +100,3 @@ Notes:
 ## Agent-first JSON contract
 
 See `docs/CONTRACT_V1.md`.
-
-## Install (npm)
-
-Global (recommended for frequent use):
-
-```bash
-npm i -g plaud
-plaud auth login
-```
-
-No install (convenient for agents/one-offs):
-
-```bash
-npx -y plaud auth status --json
-```
-
-## Install (skill)
-
-Once this lives in a GitHub repo, you’ll be able to add the agent skill with:
-
-```bash
-npx -y skills add danielgwilson/plaud --skill plaud -g -y
-```
