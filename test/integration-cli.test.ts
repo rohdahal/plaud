@@ -103,3 +103,71 @@ test("files speakers list --json returns v1 envelope on missing auth (exit 2)", 
     assert.equal(parsed.error.code, "AUTH_MISSING");
   });
 });
+
+test("recordings restore returns v1 envelope on missing auth (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "restore", "deadbeefdeadbeefdeadbeefdeadbeef"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "AUTH_MISSING");
+  });
+});
+
+test("recordings tags add returns v1 envelope on missing auth (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "tags", "add", "tag1", "deadbeefdeadbeefdeadbeefdeadbeef"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "AUTH_MISSING");
+  });
+});
+
+test("recordings tags clear returns v1 envelope on missing auth (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "tags", "clear", "deadbeefdeadbeefdeadbeefdeadbeef"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "AUTH_MISSING");
+  });
+});
+
+test("recordings rerun returns v1 envelope on missing auth (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "rerun", "deadbeefdeadbeefdeadbeefdeadbeef"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "AUTH_MISSING");
+  });
+});
+
+test("recordings speakers rename returns v1 envelope on missing auth (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(
+      ["recordings", "speakers", "rename", "deadbeefdeadbeefdeadbeefdeadbeef", "--from", "Speaker 1", "--to", "Alice"],
+      {
+        XDG_CONFIG_HOME: tmp,
+        PLAUD_AUTH_TOKEN: "",
+      },
+    );
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "AUTH_MISSING");
+  });
+});
