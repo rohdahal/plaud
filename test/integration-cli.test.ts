@@ -103,3 +103,71 @@ test("files speakers list --json returns v1 envelope on missing auth (exit 2)", 
     assert.equal(parsed.error.code, "AUTH_MISSING");
   });
 });
+
+test("recordings speakers rename rejects invalid --match (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(
+      ["recordings", "speakers", "rename", "deadbeefdeadbeefdeadbeefdeadbeef", "--from", "Speaker 1", "--to", "Alice", "--match", "weird"],
+      {
+        XDG_CONFIG_HOME: tmp,
+        PLAUD_AUTH_TOKEN: "",
+      },
+    );
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /Invalid --match/i);
+  });
+});
+
+test("recordings speakers rename rejects blank --from (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(
+      ["recordings", "speakers", "rename", "deadbeefdeadbeefdeadbeefdeadbeef", "--from", "   ", "--to", "Alice"],
+      {
+        XDG_CONFIG_HOME: tmp,
+        PLAUD_AUTH_TOKEN: "",
+      },
+    );
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /Invalid --from/i);
+  });
+});
+
+test("recordings speakers rename rejects blank --to (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(
+      ["recordings", "speakers", "rename", "deadbeefdeadbeefdeadbeefdeadbeef", "--from", "Speaker 1", "--to", " "],
+      {
+        XDG_CONFIG_HOME: tmp,
+        PLAUD_AUTH_TOKEN: "",
+      },
+    );
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /Invalid --to/i);
+  });
+});
+
+test("recordings speakers rename rejects no-op rename (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(
+      ["recordings", "speakers", "rename", "deadbeefdeadbeefdeadbeefdeadbeef", "--from", "Alice", "--to", "Alice"],
+      {
+        XDG_CONFIG_HOME: tmp,
+        PLAUD_AUTH_TOKEN: "",
+      },
+    );
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /must be different/i);
+  });
+});

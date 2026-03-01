@@ -9,6 +9,7 @@ import { downloadRecording } from "./download.js";
 import { resolveAuthToken } from "./plaud-api.js";
 import { fail, makeError, ok, printJson } from "./output.js";
 import { captureTokenFromBrowser, importTokenFromHar, saveToken, validateToken } from "./auth.js";
+import { validateSpeakerRenameOptions } from "./speakers-rename.js";
 
 function getCliVersion(): string {
   try {
@@ -728,6 +729,15 @@ recordingSpeakersCmd
   .option("--match <mode>", "original | speaker | both (default: original)", "original")
   .option("--dry-run", "Show how many segments would change without saving", false)
   .action(async (id: string, opts: any) => {
+    let renameOpts: { from: string; to: string; match: "original" | "speaker" | "both" };
+    try {
+      renameOpts = validateSpeakerRenameOptions({ from: opts.from, to: opts.to, match: opts.match });
+    } catch (err: any) {
+      process.exitCode = 2;
+      printJson(fail(makeError(null, { code: "VALIDATION", message: err?.message || "Invalid speakers rename options." })));
+      return;
+    }
+
     const token = await requireToken({ json: true });
     if (!token) return;
     const { getRecordingDetailsBatch, patchFile } = await import("./plaud-api.js");
@@ -740,9 +750,7 @@ recordingSpeakersCmd
         return;
       }
 
-      const from = String(opts.from);
-      const to = String(opts.to);
-      const match = normalizeMatchMode(opts.match);
+      const { from, to, match } = renameOpts;
 
       const transResult = extractTransResult(details);
       if (transResult.length === 0) {
