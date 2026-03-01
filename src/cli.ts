@@ -9,6 +9,7 @@ import { downloadRecording } from "./download.js";
 import { resolveAuthToken } from "./plaud-api.js";
 import { fail, makeError, ok, printJson } from "./output.js";
 import { captureTokenFromBrowser, importTokenFromHar, saveToken, validateToken } from "./auth.js";
+import { waitForTaskCompletion } from "./rerun-wait.js";
 
 function getCliVersion(): string {
   try {
@@ -972,20 +973,44 @@ filesCmd
       const res = await triggerTransSumm({ token, fileId: id, payload });
 
       let waited = false;
+      let waitMeta: Record<string, unknown> | null = null;
       if (opts.wait) {
         waited = true;
-        const startedAt = Date.now();
         const timeoutMs = Math.max(10_000, Number(opts.timeoutMs || 300000));
         const pollMs = Math.max(500, Number(opts.pollMs || 2000));
-        while (Date.now() - startedAt < timeoutMs) {
-          const tasks = await listRunningTasks({ token });
-          const stillRunning = tasks.filter((t: any) => String(t?.file_id || "") === String(id));
-          if (stillRunning.length === 0) break;
-          await new Promise((r) => setTimeout(r, pollMs));
+        const waitResult = await waitForTaskCompletion({
+          fileId: id,
+          timeoutMs,
+          pollMs,
+          listTasks: () => listRunningTasks({ token }),
+        });
+        waitMeta = {
+          waited: true,
+          timeoutMs,
+          pollMs,
+          elapsedMs: waitResult.elapsedMs,
+          polls: waitResult.polls,
+          runningTaskCount: waitResult.lastMatchingCount,
+        };
+
+        if (waitResult.timedOut) {
+          const timeoutErr = new Error(`Timed out waiting for recording task completion after ${waitResult.elapsedMs}ms.`);
+          timeoutErr.name = "AbortError";
+          process.exitCode = 1;
+          printJson(
+            fail(
+              makeError(timeoutErr, {
+                code: "TIMEOUT",
+                message: "Timed out waiting for Plaud tasks to finish. Re-run `plaud recordings tasks --json` to check status.",
+              }),
+              { id, ...waitMeta },
+            ),
+          );
+          return;
         }
       }
 
-      printJson(ok({ id, action: "rerun", waited, payload, response: res }));
+      printJson(ok({ id, action: "rerun", waited, payload, response: res }, waitMeta || undefined));
     } catch (err: any) {
       process.exitCode = 1;
       printJson(fail(makeError(err)));
