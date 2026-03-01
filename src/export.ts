@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import archiver from "archiver";
 import { createWriteStream } from "node:fs";
+import yazl from "yazl";
 import { listRecordings, getRecordingDetailsBatch } from "./plaud-api.js";
 import { formatTranscript, getFilenameWithDate } from "./recordings-format.js";
 
@@ -89,20 +89,13 @@ export async function exportRecordings({
   const progress = { current: 0, total: filtered.length };
   const results: Array<{ success: true; id: string; filename?: string } | { success: false; id: string; filename?: string; error?: string }> = [];
 
-  let archive: any = null;
-  let archiveStream: any = null;
+  let zip: yazl.ZipFile | null = null;
+  let zipStream: ReturnType<typeof createWriteStream> | null = null;
   if (zipPath) {
     await ensureDir(path.dirname(zipPath));
-    archiveStream = createWriteStream(zipPath);
-    archive = archiver("zip", { zlib: { level: 6 } });
-    archive.on("warning", (err: any) => {
-      // eslint-disable-next-line no-console
-      console.warn("zip warning:", err?.message || err);
-    });
-    archive.on("error", (err: any) => {
-      throw err;
-    });
-    archive.pipe(archiveStream);
+    zipStream = createWriteStream(zipPath);
+    zip = new yazl.ZipFile();
+    zip.outputStream.pipe(zipStream);
   } else {
     await ensureDir(outDir);
     await ensureDir(path.join(outDir, "transcripts"));
@@ -144,10 +137,10 @@ export async function exportRecordings({
         const txtRel = `transcripts/${filename}.txt`;
         const mdRel = `ai-summaries/${filename}_ai.md`;
 
-        if (archive) {
-          if (formats.json) archive.append(jsonText, { name: jsonRel });
-          if (formats.txt && transcriptText) archive.append(transcriptText, { name: txtRel });
-          if (formats.md && aiText) archive.append(aiText, { name: mdRel });
+        if (zip) {
+          if (formats.json) zip.addBuffer(Buffer.from(jsonText || "{}", "utf8"), jsonRel);
+          if (formats.txt && transcriptText) zip.addBuffer(Buffer.from(transcriptText, "utf8"), txtRel);
+          if (formats.md && aiText) zip.addBuffer(Buffer.from(aiText, "utf8"), mdRel);
         } else {
           const jsonPath = path.join(outDir, jsonRel);
           const txtPath = path.join(outDir, txtRel);
@@ -186,12 +179,13 @@ export async function exportRecordings({
     until: until || null,
   };
 
-  if (archive) {
-    archive.append(JSON.stringify(summary, null, 2), { name: "export_summary.json" });
-    archive.finalize();
+  if (zip) {
+    zip.addBuffer(Buffer.from(JSON.stringify(summary, null, 2), "utf8"), "export_summary.json");
+    zip.end();
     await new Promise<void>((resolve, reject) => {
-      archiveStream.on("close", resolve);
-      archiveStream.on("error", reject);
+      if (!zipStream) return reject(new Error("zip stream missing"));
+      zipStream.on("close", resolve);
+      zipStream.on("error", reject);
     });
   } else {
     await fs.writeFile(path.join(outDir, "export_summary.json"), JSON.stringify(summary, null, 2), "utf8");
@@ -203,4 +197,3 @@ export async function exportRecordings({
     zipPath: zipPath || null,
   };
 }
-

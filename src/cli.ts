@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import { clearConfig, readConfig, redactToken } from "./config.js";
 import { exportRecordings } from "./export.js";
@@ -8,6 +9,16 @@ import { downloadRecording } from "./download.js";
 import { resolveAuthToken } from "./plaud-api.js";
 import { fail, makeError, ok, printJson } from "./output.js";
 import { captureTokenFromBrowser, importTokenFromHar, saveToken, validateToken } from "./auth.js";
+
+function getCliVersion(): string {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require("../package.json") as { version?: unknown };
+    return typeof pkg?.version === "string" ? pkg.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 function pickUserLabel(me: any): string {
   if (!me || typeof me !== "object") return "";
@@ -111,7 +122,7 @@ function createStatusRenderer() {
 }
 
 const program = new Command();
-program.name("plaud").description("Export Plaud recordings and transcripts").version("0.1.0");
+program.name("plaud").description("Export Plaud recordings and transcripts").version(getCliVersion());
 
 program
   .command("auth")
