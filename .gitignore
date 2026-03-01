@@ -17,6 +17,10 @@ npm-debug.log*
 # Temp / captures (may contain auth)
 *.har
 *.har.gz
+plaud-download/
+plaud-download-*/
+plaud-transcripts-*.zip
+plaud-transcripts-*/
 
 # Test artifacts
 coverage/

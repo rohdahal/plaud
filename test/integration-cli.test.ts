@@ -103,3 +103,59 @@ test("files speakers list --json returns v1 envelope on missing auth (exit 2)", 
     assert.equal(parsed.error.code, "AUTH_MISSING");
   });
 });
+
+test("recordings download rejects invalid --what values (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "download", "abc", "--what", "transcript,nope"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "eyJ.fake.token",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /Invalid --what/i);
+  });
+});
+
+test("recordings download rejects invalid --audio-format values (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "download", "abc", "--what", "audio", "--audio-format", "mp3"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "eyJ.fake.token",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /Invalid --audio-format/i);
+  });
+});
+
+test("recordings export rejects invalid --since date (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "export", "--since", "not-a-date"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "eyJ.fake.token",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /Invalid --since/i);
+  });
+});
+
+test("recordings export rejects inverted date range (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["recordings", "export", "--since", "2026-02-02", "--until", "2026-02-01"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "eyJ.fake.token",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(parsed.error.message, /--since/);
+  });
+});

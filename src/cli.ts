@@ -54,6 +54,12 @@ function splitCsv(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function parseUserDate(value: unknown): Date | null {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
@@ -1093,8 +1099,16 @@ filesCmd
       });
       printJson(ok(result));
     } catch (err: any) {
-      process.exitCode = 1;
-      printJson(fail(makeError(err)));
+      const isValidation = err?.code === "VALIDATION";
+      process.exitCode = isValidation ? 2 : 1;
+      printJson(
+        fail(
+          makeError(
+            err,
+            isValidation ? { code: "VALIDATION", message: err?.message || "Invalid recordings download options." } : {},
+          ),
+        ),
+      );
     }
   });
 
@@ -1112,6 +1126,24 @@ filesCmd
   .option("--until <iso>", "Only export recordings on/before this date (ISO string or YYYY-MM-DD)")
   .option("--resume", "Skip writing files that already exist (dir mode)", false)
   .action(async (opts: any) => {
+    const sinceDate = parseUserDate(opts.since);
+    const untilDate = parseUserDate(opts.until);
+    if (opts.since && !sinceDate) {
+      process.exitCode = 2;
+      printJson(fail(makeError(null, { code: "VALIDATION", message: "Invalid --since date. Use ISO string or YYYY-MM-DD." })));
+      return;
+    }
+    if (opts.until && !untilDate) {
+      process.exitCode = 2;
+      printJson(fail(makeError(null, { code: "VALIDATION", message: "Invalid --until date. Use ISO string or YYYY-MM-DD." })));
+      return;
+    }
+    if (sinceDate && untilDate && sinceDate > untilDate) {
+      process.exitCode = 2;
+      printJson(fail(makeError(null, { code: "VALIDATION", message: "`--since` must be earlier than or equal to `--until`." })));
+      return;
+    }
+
     const token = await resolveAuthToken();
     if (!token) {
       printJson(fail(makeError(null, { code: "AUTH_MISSING", message: "No auth token. Run `plaud auth login`." })));

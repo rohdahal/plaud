@@ -5,6 +5,15 @@ import { Readable } from "node:stream";
 import { getRecordingTempUrls, getRecordingDetailsBatch } from "./plaud-api.js";
 import { formatTranscript, getFilenameWithDate, sanitizeFilename } from "./recordings-format.js";
 
+const VALID_WHAT = new Set(["transcript", "summary", "json", "audio"]);
+const VALID_AUDIO_FORMATS = new Set(["opus", "original"]);
+
+function makeValidationError(message: string): Error & { code: string } {
+  const err = new Error(message) as Error & { code: string };
+  err.code = "VALIDATION";
+  return err;
+}
+
 async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
 }
@@ -50,7 +59,14 @@ function parseWhat(what: string): Set<string> {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
-  return new Set(parts.length ? parts : ["transcript", "summary", "json"]);
+  const selected = parts.length ? parts : ["transcript", "summary", "json"];
+  const invalid = selected.filter((item) => !VALID_WHAT.has(item));
+  if (invalid.length > 0) {
+    throw makeValidationError(
+      `Invalid --what value(s): ${invalid.join(", ")}. Allowed: transcript,summary,json,audio.`,
+    );
+  }
+  return new Set(selected);
 }
 
 export async function downloadRecording({
@@ -69,6 +85,10 @@ export async function downloadRecording({
   if (!token) throw new Error("Missing token");
   if (!id) throw new Error("Missing id");
   if (!outDir) throw new Error("Missing outDir");
+
+  if (!VALID_AUDIO_FORMATS.has(audioFormat)) {
+    throw makeValidationError("Invalid --audio-format. Allowed: opus,original.");
+  }
 
   const whatSet = parseWhat(what);
   const details = await getDetails({ token, id });
@@ -111,4 +131,3 @@ export async function downloadRecording({
 
   return { id: String(id), outDir, written };
 }
-
