@@ -302,3 +302,23 @@ export async function listRunningTasks({ token }: { token: string }): Promise<Pl
   const list = res?.data?.file_status_list;
   return Array.isArray(list) ? (list as PlaudRunningTask[]) : [];
 }
+
+export async function patchFile({
+  token,
+  fileId,
+  body,
+}: {
+  token: string;
+  fileId: string;
+  body: Record<string, unknown>;
+}): Promise<any> {
+  if (!fileId) throw new Error("Missing file id");
+  const res = await plaudRequest({
+    token,
+    endpoint: `/file/${encodeURIComponent(String(fileId))}`,
+    method: "PATCH",
+    body,
+  });
+  assertApiOk(res);
+  return res;
+}

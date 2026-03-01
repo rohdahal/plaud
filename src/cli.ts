@@ -363,6 +363,13 @@ const recordingsCmd = program
   .alias("files")
   .description("Manage Plaud recordings (files)");
 
+function normalizeMatchMode(value: unknown): "original" | "speaker" | "both" {
+  const v = String(value || "").toLowerCase();
+  if (v === "original" || v === "original_speaker") return "original";
+  if (v === "speaker" || v === "display") return "speaker";
+  return "both";
+}
+
 recordingsCmd
   .command("list")
   .description("List recordings (count-only by default)")
@@ -405,6 +412,147 @@ recordingsCmd
         return;
       }
       throw err;
+    }
+  });
+
+const recordingSpeakersCmd = recordingsCmd.command("speakers").description("Manage speakers within a single recording");
+
+function extractTransResult(details: any): any[] {
+  const t = details?.trans_result;
+  return Array.isArray(t) ? t : [];
+}
+
+function summarizeSpeakerMappings(transResult: any[]): Array<{ originalSpeaker: string; speaker: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const seg of transResult) {
+    if (!seg || typeof seg !== "object") continue;
+    const speaker = typeof (seg as any).speaker === "string" ? String((seg as any).speaker) : "";
+    const original =
+      typeof (seg as any).original_speaker === "string"
+        ? String((seg as any).original_speaker)
+        : speaker;
+    const key = `${original}\u0000${speaker}`;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  const out = [...counts.entries()].map(([k, count]) => {
+    const [originalSpeaker, speaker] = k.split("\u0000");
+    return { originalSpeaker, speaker, count };
+  });
+  out.sort((a, b) => a.originalSpeaker.localeCompare(b.originalSpeaker) || a.speaker.localeCompare(b.speaker));
+  return out;
+}
+
+recordingSpeakersCmd
+  .command("list")
+  .description("List speaker labels used in a recording transcript")
+  .argument("<id>", "Recording id")
+  .option("--json", "Print JSON")
+  .action(async (id: string, opts: { json?: boolean }) => {
+    const token = await requireToken({ json: !!opts.json });
+    if (!token) return;
+    const { getRecordingDetailsBatch } = await import("./plaud-api.js");
+    try {
+      const list = await getRecordingDetailsBatch({ token, ids: [id] });
+      const details = Array.isArray(list) ? list.find((d: any) => String(d?.id || "") === String(id)) : null;
+      if (!details) {
+        process.exitCode = 1;
+        if (opts.json) {
+          printJson(fail(makeError(null, { code: "NOT_FOUND", message: "Recording not found (or details unavailable)." })));
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error("Recording not found (or details unavailable).");
+        return;
+      }
+
+      const transResult = extractTransResult(details);
+      const mappings = summarizeSpeakerMappings(transResult);
+      if (opts.json) {
+        printJson(ok({ id, totalSegments: transResult.length, mappings }));
+        return;
+      }
+      // eslint-disable-next-line no-console
+      for (const m of mappings) console.log(`${m.originalSpeaker}\t${m.speaker}\t${m.count}`);
+    } catch (err: any) {
+      process.exitCode = 1;
+      if (opts.json) {
+        printJson(fail(makeError(err)));
+        return;
+      }
+      throw err;
+    }
+  });
+
+recordingSpeakersCmd
+  .command("rename")
+  .description("Rename a speaker label within a single recording transcript (edits trans_result)")
+  .argument("<id>", "Recording id")
+  .requiredOption("--from <label>", "Match label (e.g. \"Speaker 2\")")
+  .requiredOption("--to <label>", "New display label (e.g. \"Person A\")")
+  .option("--match <mode>", "original | speaker | both (default: original)", "original")
+  .option("--dry-run", "Show how many segments would change without saving", false)
+  .action(async (id: string, opts: any) => {
+    const token = await requireToken({ json: true });
+    if (!token) return;
+    const { getRecordingDetailsBatch, patchFile } = await import("./plaud-api.js");
+    try {
+      const list = await getRecordingDetailsBatch({ token, ids: [id] });
+      const details = Array.isArray(list) ? list.find((d: any) => String(d?.id || "") === String(id)) : null;
+      if (!details) {
+        process.exitCode = 1;
+        printJson(fail(makeError(null, { code: "NOT_FOUND", message: "Recording not found (or details unavailable)." })));
+        return;
+      }
+
+      const from = String(opts.from);
+      const to = String(opts.to);
+      const match = normalizeMatchMode(opts.match);
+
+      const transResult = extractTransResult(details);
+      if (transResult.length === 0) {
+        process.exitCode = 2;
+        printJson(fail(makeError(null, { code: "VALIDATION", message: "Recording has no trans_result to edit." })));
+        return;
+      }
+
+      let changed = 0;
+      const updated = transResult.map((seg: any) => {
+        if (!seg || typeof seg !== "object") return seg;
+        const speaker = typeof seg.speaker === "string" ? seg.speaker : "";
+        const original = typeof seg.original_speaker === "string" ? seg.original_speaker : "";
+        const matches =
+          (match === "original" && original === from) ||
+          (match === "speaker" && speaker === from) ||
+          (match === "both" && (original === from || speaker === from));
+        if (!matches) return seg;
+        if (speaker === to) return seg;
+        changed++;
+        return { ...seg, speaker: to };
+      });
+
+      if (changed === 0) {
+        process.exitCode = 2;
+        printJson(
+          fail(
+            makeError(null, {
+              code: "VALIDATION",
+              message: "No transcript segments matched. Try `plaud recordings speakers list <id>` to inspect labels.",
+            }),
+          ),
+        );
+        return;
+      }
+
+      if (opts.dryRun) {
+        printJson(ok({ id, action: "recordings.speakers.rename", dryRun: true, from, to, match, changed, totalSegments: transResult.length }));
+        return;
+      }
+
+      const res = await patchFile({ token, fileId: id, body: { trans_result: updated, support_mul_summ: true } });
+      printJson(ok({ id, action: "recordings.speakers.rename", dryRun: false, from, to, match, changed, response: res }));
+    } catch (err: any) {
+      process.exitCode = 1;
+      printJson(fail(makeError(err)));
     }
   });
 
@@ -668,12 +816,26 @@ speakersCmd
 
 speakersCmd
   .command("rename")
-  .description("Rename a speaker")
+  .description("Rename a speaker in Plaud's speaker cloud (global, use with caution)")
   .argument("<speakerId>", "Speaker id")
   .requiredOption("--name <name>", "New speaker name")
-  .action(async (speakerId: string, opts: { name: string }) => {
+  .option("--force", "Acknowledge this may affect other recordings", false)
+  .action(async (speakerId: string, opts: { name: string; force?: boolean }) => {
     const token = await requireToken({ json: true });
     if (!token) return;
+    if (!opts.force) {
+      process.exitCode = 2;
+      printJson(
+        fail(
+          makeError(null, {
+            code: "VALIDATION",
+            message:
+              "Refusing to rename speaker cloud identity without --force (may affect other recordings). Prefer `plaud recordings speakers rename`.",
+          }),
+        ),
+      );
+      return;
+    }
     const { listSpeakers, syncSpeakers } = await import("./plaud-api.js");
     try {
       const speakers = await listSpeakers({ token });
