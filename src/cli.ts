@@ -81,6 +81,7 @@ function formatElapsed(elapsedMs: number): string {
 }
 
 function createStatusRenderer() {
+  const interactive = !!process.stderr.isTTY;
   const startedAt = Date.now();
   const spinnerFrames = ["|", "/", "-", "\\"] as const;
   let frame = 0;
@@ -90,6 +91,7 @@ function createStatusRenderer() {
   let interval: NodeJS.Timeout | null = null;
 
   const render = () => {
+    if (!interactive) return;
     const elapsedMs = Date.now() - startedAt;
     const spin = spinnerFrames[frame % spinnerFrames.length];
     frame++;
@@ -105,6 +107,7 @@ function createStatusRenderer() {
   return {
     update({ msg, elapsedMs }: { msg: string; elapsedMs?: number }) {
       currentMsg = msg || currentMsg;
+      if (!interactive) return;
       if (!interval) {
         if (typeof elapsedMs === "number") {
           const line = `[plaud] ${msg} (${formatElapsed(elapsedMs)})`;
@@ -121,6 +124,7 @@ function createStatusRenderer() {
     },
     start(msg: string) {
       currentMsg = msg || currentMsg;
+      if (!interactive) return;
       if (interval) return;
       render();
       interval = setInterval(render, 120);
@@ -128,6 +132,7 @@ function createStatusRenderer() {
     done(finalMsg?: string) {
       if (interval) clearInterval(interval);
       interval = null;
+      if (!interactive) return;
       if (finalMsg) process.stderr.write(`\r[plaud] ${finalMsg}\n`);
       else process.stderr.write("\n");
     },
@@ -1135,6 +1140,7 @@ filesCmd
         await fs.mkdir(outDir, { recursive: true });
       }
 
+      const interactive = !!process.stderr.isTTY;
       let lastRendered = 0;
       const summary = await exportRecordings({
         token,
@@ -1149,6 +1155,7 @@ filesCmd
         until: opts.until || null,
         resume: !!opts.resume,
         onProgress: (p) => {
+          if (!interactive) return;
           const now = Date.now();
           if (now - lastRendered < 200) return;
           lastRendered = now;
@@ -1157,8 +1164,10 @@ filesCmd
         },
       });
 
-      // eslint-disable-next-line no-console
-      process.stderr.write("\n");
+      if (interactive) {
+        // eslint-disable-next-line no-console
+        process.stderr.write("\n");
+      }
       printJson(ok(summary));
     } catch (err: any) {
       process.exitCode = 1;
