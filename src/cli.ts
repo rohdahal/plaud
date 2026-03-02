@@ -358,10 +358,7 @@ program
       }),
   );
 
-const recordingsCmd = program
-  .command("recordings")
-  .alias("files")
-  .description("Manage Plaud recordings (files)");
+const filesCmd = program.command("files").alias("recordings").description("Manage Plaud files");
 
 function normalizeMatchMode(value: unknown): "original" | "speaker" | "both" {
   const v = String(value || "").toLowerCase();
@@ -370,7 +367,7 @@ function normalizeMatchMode(value: unknown): "original" | "speaker" | "both" {
   return "both";
 }
 
-recordingsCmd
+filesCmd
   .command("list")
   .description("List files (most recent first by default)")
   .option("--include-trash", "Include trashed recordings", false)
@@ -627,11 +624,11 @@ recordingsCmd
       }
 
       const createdWidth = 16;
-      const durWidth = 8;
+      const durWidth = 10;
       const idWidth = 8;
 
       // eslint-disable-next-line no-console
-      console.log(`${"Created".padEnd(createdWidth)} ${"Dur".padEnd(durWidth)} ${"ID".padEnd(idWidth)} Name`);
+      console.log(`${"Created".padEnd(createdWidth)} ${"Duration".padEnd(durWidth)} ${"ID".padEnd(idWidth)} Name`);
       // eslint-disable-next-line no-console
       console.log(`${"-".repeat(createdWidth)} ${"-".repeat(durWidth)} ${"-".repeat(idWidth)} ${"-".repeat(20)}`);
       for (const it of items) {
@@ -641,7 +638,7 @@ recordingsCmd
       }
       if (hasMore) {
         // eslint-disable-next-line no-console
-        console.log(`\nMore available. Next page: plaud recordings list --skip ${rawSkip} --limit ${Number.isFinite(limit) ? limit : 25}`);
+        console.log(`\nMore available. Next page: plaud files list --skip ${rawSkip} --limit ${Number.isFinite(limit) ? limit : 25}`);
       }
     } catch (err: any) {
       process.exitCode = 1;
@@ -654,7 +651,7 @@ recordingsCmd
   },
   );
 
-const recordingSpeakersCmd = recordingsCmd.command("speakers").description("Manage speakers within a single recording");
+const recordingSpeakersCmd = filesCmd.command("speakers").description("Manage speakers within a single file");
 
 function extractTransResult(details: any): any[] {
   const t = details?.trans_result;
@@ -775,7 +772,7 @@ recordingSpeakersCmd
           fail(
             makeError(null, {
               code: "VALIDATION",
-              message: "No transcript segments matched. Try `plaud recordings speakers list <id>` to inspect labels.",
+              message: "No transcript segments matched. Try `plaud files speakers list <id>` to inspect labels.",
             }),
           ),
         );
@@ -783,19 +780,19 @@ recordingSpeakersCmd
       }
 
       if (opts.dryRun) {
-        printJson(ok({ id, action: "recordings.speakers.rename", dryRun: true, from, to, match, changed, totalSegments: transResult.length }));
+        printJson(ok({ id, action: "files.speakers.rename", dryRun: true, from, to, match, changed, totalSegments: transResult.length }));
         return;
       }
 
       const res = await patchFile({ token, fileId: id, body: { trans_result: updated, support_mul_summ: true } });
-      printJson(ok({ id, action: "recordings.speakers.rename", dryRun: false, from, to, match, changed, response: res }));
+      printJson(ok({ id, action: "files.speakers.rename", dryRun: false, from, to, match, changed, response: res }));
     } catch (err: any) {
       process.exitCode = 1;
       printJson(fail(makeError(err)));
     }
   });
 
-recordingsCmd
+filesCmd
   .command("trash")
   .description("Move recording(s) to trash")
   .argument("<id...>", "Recording id(s)")
@@ -812,7 +809,7 @@ recordingsCmd
     }
   });
 
-recordingsCmd
+filesCmd
   .command("restore")
   .description("Restore recording(s) from trash")
   .argument("<id...>", "Recording id(s)")
@@ -829,7 +826,7 @@ recordingsCmd
     }
   });
 
-const recordingTagsCmd = recordingsCmd.command("tags").description("Manage tags on recordings");
+const recordingTagsCmd = filesCmd.command("tags").description("Manage tags on files");
 
 recordingTagsCmd
   .command("list")
@@ -932,7 +929,7 @@ function inferTransSummPayload(details: any, overrides: { summType?: string; sum
   };
 }
 
-recordingsCmd
+filesCmd
   .command("rerun")
   .description("Re-run transcript/summary generation for a recording")
   .argument("<id>", "Recording id")
@@ -995,7 +992,7 @@ recordingsCmd
     }
   });
 
-recordingsCmd
+filesCmd
   .command("tasks")
   .description("List running transcription/summary tasks")
   .option("--file-id <id>", "Filter to a specific recording id")
@@ -1020,7 +1017,7 @@ recordingsCmd
     }
   });
 
-recordingsCmd
+filesCmd
   .command("get")
   .description("Get recording details")
   .argument("<id>", "Recording id")
@@ -1070,7 +1067,7 @@ recordingsCmd
     }
   });
 
-recordingsCmd
+filesCmd
   .command("download")
   .description("Download a single recording's transcript/summary/json/audio")
   .argument("<id>", "Recording id")
@@ -1101,7 +1098,7 @@ recordingsCmd
     }
   });
 
-recordingsCmd
+filesCmd
   .command("export")
   .description("Export many recordings to a directory or zip (bulk)")
   .option("--include-trash", "Include trashed recordings", false)

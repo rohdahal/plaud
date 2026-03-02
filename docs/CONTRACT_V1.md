@@ -2,19 +2,21 @@
 
 This document defines **stable**, machine-readable behavior for agents and scripts.
 
+Note: `plaud recordings …` is supported as an alias for `plaud files …`.
+
 ## Output rules
 
 - When you pass `--json`, the command prints **exactly one JSON object** to stdout.
 - Progress/status logs go to **stderr**.
 - For mutation-style commands, stdout is always JSON (even without `--json`):
-  - `plaud recordings download`
-  - `plaud recordings export`
-  - `plaud recordings trash`
-  - `plaud recordings restore`
-  - `plaud recordings tags add`
-  - `plaud recordings tags clear`
-  - `plaud recordings rerun`
-  - `plaud recordings speakers rename`
+  - `plaud files download`
+  - `plaud files export`
+  - `plaud files trash`
+  - `plaud files restore`
+  - `plaud files tags add`
+  - `plaud files tags clear`
+  - `plaud files rerun`
+  - `plaud files speakers rename`
 
 ## JSON envelope
 
@@ -163,7 +165,7 @@ Failure:
 }
 ```
 
-### `plaud recordings list --json`
+### `plaud files list --json`
 
 Success:
 ```json
@@ -190,7 +192,7 @@ Success:
 }
 ```
 
-### `plaud recordings get <id> --json`
+### `plaud files get <id> --json`
 
 Success:
 ```json
@@ -202,7 +204,7 @@ Failure (not found):
 { "ok": false, "error": { "code": "NOT_FOUND", "message": "Recording not found", "retryable": false } }
 ```
 
-### `plaud recordings download <id>`
+### `plaud files download <id>`
 
 Success:
 ```json
@@ -220,7 +222,7 @@ Notes:
 - `--what` supports: `transcript,summary,json,audio`
 - `--audio-format` supports: `opus` (preferred) or `original`
 
-### `plaud recordings export`
+### `plaud files export`
 
 Success:
 ```json
@@ -240,65 +242,65 @@ Success:
 }
 ```
 
-### `plaud recordings trash <id...>`
+### `plaud files trash <id...>`
 
 Success:
 ```json
 { "ok": true, "data": { "ids": ["…"], "action": "trash", "response": { "status": 0 } } }
 ```
 
-### `plaud recordings restore <id...>`
+### `plaud files restore <id...>`
 
 Success:
 ```json
 { "ok": true, "data": { "ids": ["…"], "action": "restore", "response": { "status": 0 } } }
 ```
 
-### `plaud recordings tags list --json`
+### `plaud files tags list --json`
 
 Success:
 ```json
 { "ok": true, "data": { "count": 1, "tags": [{ "id": "…", "name": "…" }] } }
 ```
 
-### `plaud recordings tags add <tagId> <id...>`
+### `plaud files tags add <tagId> <id...>`
 
 Success:
 ```json
 { "ok": true, "data": { "ids": ["…"], "action": "tags.add", "tagId": "…", "response": { "status": 0 } } }
 ```
 
-### `plaud recordings tags clear <id...>`
+### `plaud files tags clear <id...>`
 
 Success:
 ```json
 { "ok": true, "data": { "ids": ["…"], "action": "tags.clear", "response": { "status": 0 } } }
 ```
 
-### `plaud recordings rerun <id>`
+### `plaud files rerun <id>`
 
 Success:
 ```json
 { "ok": true, "data": { "id": "…", "action": "rerun", "waited": false, "response": { "status": 0 } } }
 ```
 
-### `plaud recordings tasks --json`
+### `plaud files tasks --json`
 
 Success:
 ```json
 { "ok": true, "data": { "count": 2, "tasks": [{ "file_id": "…", "task_type": "transcript" }] } }
 ```
 
-### `plaud recordings speakers list <id> --json`
+### `plaud files speakers list <id> --json`
 
 Success:
 ```json
 { "ok": true, "data": { "id": "…", "totalSegments": 162, "mappings": [{ "originalSpeaker": "Speaker 2", "speaker": "Person A", "count": 10 }] } }
 ```
 
-### `plaud recordings speakers rename <id> --from "Speaker 2" --to "Person A"`
+### `plaud files speakers rename <id> --from "Speaker 2" --to "Person A"`
 
 Success:
 ```json
-{ "ok": true, "data": { "id": "…", "action": "recordings.speakers.rename", "dryRun": false, "changed": 10 } }
+{ "ok": true, "data": { "id": "…", "action": "files.speakers.rename", "dryRun": false, "changed": 10 } }
 ```

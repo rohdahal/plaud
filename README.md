@@ -13,7 +13,7 @@ Security note: **do not** share tokens or `*.har` files (HARs often contain `Aut
 
 ## Terminology
 
-Plaud’s web UI uses “Files”. This CLI uses `recordings` (with `files` as an alias): `plaud recordings …` or `plaud files …`.
+Plaud’s web UI uses “Files”. This CLI uses `files` as the primary command group, with `recordings` kept as an alias for compatibility: `plaud files …` (preferred) or `plaud recordings …`.
 
 ## Install (npm)
 
@@ -33,7 +33,7 @@ npx -y plaud auth status --json
 ## Install (skill)
 
 ```bash
-npx -y skills add danielgwilson/plaud --skill plaud -g -y
+npx -y skills add -g danielgwilson/plaud --skill plaud
 ```
 
 ## Publishing (maintainers)
@@ -93,25 +93,26 @@ node --env-file .env "$(command -v plaud)" auth status --json
 Create a single ZIP (default):
 
 ```bash
-plaud recordings export --zip
+plaud files export --zip
 ```
 
 Export to a directory:
 
 ```bash
-plaud recordings export --out ./plaud-transcripts --formats txt,json,md
+plaud files export --out ./plaud-transcripts --formats txt,json,md
 ```
 
 ## Download a single recording
 
 ```bash
-plaud recordings list --json --limit 10
-plaud recordings download <id> --out ./plaud-download --what transcript,summary,json
-plaud recordings download <id> --out ./plaud-download --what audio --audio-format opus
+plaud files list --json --limit 10
+plaud files download <id> --out ./plaud-download --what transcript,summary,json
+plaud files download <id> --out ./plaud-download --what audio --audio-format opus
 ```
 
 Notes:
-- `plaud recordings export` prints a JSON summary to stdout; progress goes to stderr.
+- `plaud files export` prints a JSON summary to stdout; progress goes to stderr.
+- (`plaud recordings …` is supported as an alias for `plaud files …`.)
 - Tokens are stored at `~/.config/plaud/config.json` with `0600` permissions.
 
 ## Agent-first JSON contract

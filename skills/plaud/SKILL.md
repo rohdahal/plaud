@@ -29,22 +29,22 @@ Fallbacks:
 
 ## Common workflows
 
-- List (recent): `plaud recordings list --json --limit 50`
-- Next page: `plaud recordings list --json --skip 50 --limit 50`
-- Get one: `plaud recordings get <id> --json`
-- Download one: `plaud recordings download <id> --out ./plaud-download --what transcript,summary,json`
-- Download audio: `plaud recordings download <id> --out ./plaud-download --what audio --audio-format opus`
-- Bulk export: `plaud recordings export --zip`
-- Trash: `plaud recordings trash <id>`
-- Restore: `plaud recordings restore <id>`
-- Tags (list): `plaud recordings tags list --json`
-- Tags (add): `plaud recordings tags add <tagId> <id>`
-- Tags (clear): `plaud recordings tags clear <id>`
-- Re-run transcript/summary: `plaud recordings rerun <id> --wait`
-- Recording speaker labels (list): `plaud recordings speakers list <id> --json`
-- Recording speaker labels (rename): `plaud recordings speakers rename <id> --from "Speaker 2" --to "Person A"`
+- List (recent): `plaud files list --json --limit 50`
+- Next page: `plaud files list --json --skip 50 --limit 50`
+- Get one: `plaud files get <id> --json`
+- Download one: `plaud files download <id> --out ./plaud-download --what transcript,summary,json`
+- Download audio: `plaud files download <id> --out ./plaud-download --what audio --audio-format opus`
+- Bulk export: `plaud files export --zip`
+- Trash: `plaud files trash <id>`
+- Restore: `plaud files restore <id>`
+- Tags (list): `plaud files tags list --json`
+- Tags (add): `plaud files tags add <tagId> <id>`
+- Tags (clear): `plaud files tags clear <id>`
+- Re-run transcript/summary: `plaud files rerun <id> --wait`
+- Recording speaker labels (list): `plaud files speakers list <id> --json`
+- Recording speaker labels (rename): `plaud files speakers rename <id> --from "Speaker 2" --to "Person A"`
 
 ## Notes
 
-- `plaud recordings export` prints a JSON summary to stdout; progress goes to stderr.
+- `plaud files export` prints a JSON summary to stdout; progress goes to stderr.
 - When in doubt: run `plaud doctor --json` to confirm auth + API access.

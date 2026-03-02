@@ -51,9 +51,9 @@ test("auth show --json returns v1 envelope on missing auth (exit 2)", async () =
   });
 });
 
-test("recordings list --json returns v1 envelope on missing auth (exit 2)", async () => {
+test("files list --json returns v1 envelope on missing auth (exit 2)", async () => {
   await withTempDir(async (tmp) => {
-    const r = await runCli(["recordings", "list", "--json", "--max", "1"], {
+    const r = await runCli(["files", "list", "--json", "--limit", "1"], {
       XDG_CONFIG_HOME: tmp,
       PLAUD_AUTH_TOKEN: "",
     });
@@ -78,9 +78,9 @@ test("doctor --json returns v1 envelope on missing auth (exit 2)", async () => {
   });
 });
 
-test("recordings trash returns v1 envelope on missing auth (exit 2)", async () => {
+test("files trash returns v1 envelope on missing auth (exit 2)", async () => {
   await withTempDir(async (tmp) => {
-    const r = await runCli(["recordings", "trash", "deadbeefdeadbeefdeadbeefdeadbeef"], {
+    const r = await runCli(["files", "trash", "deadbeefdeadbeefdeadbeefdeadbeef"], {
       XDG_CONFIG_HOME: tmp,
       PLAUD_AUTH_TOKEN: "",
     });
@@ -91,9 +91,9 @@ test("recordings trash returns v1 envelope on missing auth (exit 2)", async () =
   });
 });
 
-test("recordings speakers list --json returns v1 envelope on missing auth (exit 2)", async () => {
+test("files speakers list --json returns v1 envelope on missing auth (exit 2)", async () => {
   await withTempDir(async (tmp) => {
-    const r = await runCli(["recordings", "speakers", "list", "deadbeefdeadbeefdeadbeefdeadbeef", "--json"], {
+    const r = await runCli(["files", "speakers", "list", "deadbeefdeadbeefdeadbeefdeadbeef", "--json"], {
       XDG_CONFIG_HOME: tmp,
       PLAUD_AUTH_TOKEN: "",
     });
