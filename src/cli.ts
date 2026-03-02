@@ -380,6 +380,7 @@ filesCmd
   .option("--from <iso>", "Only include files on/after this date (YYYY-MM-DD or ISO-8601)")
   .option("--to <iso>", "Only include files on/before this date (YYYY-MM-DD or ISO-8601)")
   .option("--last <duration>", "Shorthand for a recent window like 7d, 30d, 24h (sets --from)")
+  .option("--query <text>", "Case-insensitive filename filter (substring match)")
   .option("--raw", "Include raw API items in JSON output", false)
   .option("--json", "Print JSON")
   .action(
@@ -394,6 +395,7 @@ filesCmd
       from?: string;
       to?: string;
       last?: string;
+      query?: string;
       raw?: boolean;
       json?: boolean;
     }) => {
@@ -448,6 +450,7 @@ filesCmd
       const now = Date.now();
       const fromDate = parseDate(opts.from) || (lastMs ? new Date(now - lastMs) : null);
       const toDate = parseDate(opts.to);
+      const query = String(opts.query || "").trim().toLowerCase();
       if ((opts.from && !fromDate) || (opts.to && !toDate) || (opts.last && !lastMs)) {
         process.exitCode = 2;
         printJson(
@@ -504,9 +507,11 @@ filesCmd
       function matchesWindow(file: any): boolean {
         const createdMs = getCreatedMs(file);
         const modifiedMs = getModifiedMs(file);
+        const name = String(file?.filename || file?.name || "").toLowerCase();
         const sortMs = sortBy === "edit_time" ? modifiedMs : createdMs;
         const ms = sortMs ?? createdMs ?? modifiedMs;
         if (!ms) return true;
+        if (query && !name.includes(query)) return false;
         if (fromDate && ms < fromDate.getTime()) return false;
         if (toDate && ms > toDate.getTime()) return false;
         return true;
@@ -593,7 +598,7 @@ filesCmd
             scanned,
           },
           sort: { field: sortBy === "edit_time" ? "modified" : "created", order: isDesc ? "desc" : "asc" },
-          filter: { from: fromDate ? fromDate.toISOString() : null, to: toDate ? toDate.toISOString() : null },
+          filter: { from: fromDate ? fromDate.toISOString() : null, to: toDate ? toDate.toISOString() : null, query: query || null },
         };
         if (opts.raw) data.recordings = rawItems;
         printJson(ok(data, { includeTrash: !!opts.includeTrash }));

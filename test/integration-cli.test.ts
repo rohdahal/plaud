@@ -64,6 +64,19 @@ test("files list --json returns v1 envelope on missing auth (exit 2)", async () 
   });
 });
 
+test("files list --query keeps auth envelope behavior on missing auth (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["files", "list", "--json", "--query", "meeting"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "AUTH_MISSING");
+  });
+});
+
 test("doctor --json returns v1 envelope on missing auth (exit 2)", async () => {
   await withTempDir(async (tmp) => {
     const r = await runCli(["doctor", "--json"], {

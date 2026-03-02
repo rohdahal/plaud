@@ -106,6 +106,7 @@ plaud files export --out ./plaud-transcripts --formats txt,json,md
 
 ```bash
 plaud files list --json --limit 10
+plaud files list --json --query "meeting"
 plaud files download <id> --out ./plaud-download --what transcript,summary,json
 plaud files download <id> --out ./plaud-download --what audio --audio-format opus
 ```
