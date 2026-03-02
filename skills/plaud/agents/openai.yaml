@@ -1,0 +1,7 @@
+interface:
+  display_name: "Plaud"
+  short_description: "List, download, and export Plaud files (audio, transcripts, summaries)."
+  default_prompt: "Use $plaud to authenticate (if needed), list recent Plaud files, and download/export the requested transcripts/summaries/audio with --json where appropriate."
+
+policy:
+  allow_implicit_invocation: true
