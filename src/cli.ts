@@ -6,6 +6,7 @@ import { Command } from "commander";
 import { clearConfig, readConfig, redactToken } from "./config.js";
 import { exportRecordings } from "./export.js";
 import { downloadRecording } from "./download.js";
+import { finalizeListPage } from "./list-pagination.js";
 import { resolveAuthToken } from "./plaud-api.js";
 import { fail, makeError, ok, printJson } from "./output.js";
 import { captureTokenFromBrowser, importTokenFromHar, saveToken, validateToken } from "./auth.js";
@@ -576,22 +577,16 @@ filesCmd
         }
       }
 
-      if (Number.isFinite(limit) && items.length > limit) {
-        hasMore = true;
-        items.length = limit;
-      }
+      const pageResult = finalizeListPage({ items, limit, skip, rawSkip, scanned });
+      hasMore = pageResult.hasMore;
+      items.length = 0;
+      items.push(...pageResult.items);
 
       if (opts.json) {
         const data: any = {
           count: items.length,
           items,
-          page: {
-            limit: Number.isFinite(limit) ? limit : null,
-            skip,
-            nextSkip: rawSkip,
-            hasMore,
-            scanned,
-          },
+          page: pageResult.page,
           sort: { field: sortBy === "edit_time" ? "modified" : "created", order: isDesc ? "desc" : "asc" },
           filter: { from: fromDate ? fromDate.toISOString() : null, to: toDate ? toDate.toISOString() : null },
         };
