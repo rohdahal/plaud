@@ -380,6 +380,7 @@ filesCmd
   .option("--from <iso>", "Only include files on/after this date (YYYY-MM-DD or ISO-8601)")
   .option("--to <iso>", "Only include files on/before this date (YYYY-MM-DD or ISO-8601)")
   .option("--last <duration>", "Shorthand for a recent window like 7d, 30d, 24h (sets --from)")
+  .option("--strict", "Enable strict validation for sort/order/limit/skip options", false)
   .option("--raw", "Include raw API items in JSON output", false)
   .option("--json", "Print JSON")
   .action(
@@ -394,9 +395,39 @@ filesCmd
       from?: string;
       to?: string;
       last?: string;
+      strict?: boolean;
       raw?: boolean;
       json?: boolean;
     }) => {
+    const sortInput = String(opts.sort || "created").toLowerCase();
+    const orderInput = String(opts.order || "desc").toLowerCase();
+    const limitInput = Number.isFinite(opts.max as any) ? Number(opts.max) : Number(opts.limit);
+    const skipInput = Number(opts.skip || 0);
+
+    if (opts.strict) {
+      const errors: string[] = [];
+      if (sortInput !== "created" && sortInput !== "modified") errors.push("`--sort` must be one of: created, modified.");
+      if (orderInput !== "asc" && orderInput !== "desc") errors.push("`--order` must be one of: asc, desc.");
+      if (!opts.all && (!Number.isFinite(limitInput) || !Number.isInteger(limitInput) || limitInput < 1)) {
+        errors.push("`--limit`/`--max` must be an integer >= 1 (or use `--all`).");
+      }
+      if (!Number.isFinite(skipInput) || !Number.isInteger(skipInput) || skipInput < 0) {
+        errors.push("`--skip` must be an integer >= 0.");
+      }
+      if (errors.length) {
+        process.exitCode = 2;
+        printJson(
+          fail(
+            makeError(null, {
+              code: "VALIDATION",
+              message: errors.join(" "),
+            }),
+          ),
+        );
+        return;
+      }
+    }
+
     const { listRecordingsPage } = await import("./plaud-api.js");
     const token = await resolveAuthToken();
     if (!token) {
@@ -411,8 +442,8 @@ filesCmd
     }
 
     try {
-      const sortBy = String(opts.sort || "created").toLowerCase() === "modified" ? "edit_time" : "start_time";
-      const isDesc = String(opts.order || "desc").toLowerCase() !== "asc";
+      const sortBy = sortInput === "modified" ? "edit_time" : "start_time";
+      const isDesc = orderInput !== "asc";
 
       function parseDate(value: string | undefined): Date | null {
         if (!value) return null;
@@ -462,8 +493,8 @@ filesCmd
         return;
       }
 
-      const limit = opts.all ? Infinity : Math.max(0, Number.isFinite(opts.max as any) ? Number(opts.max) : Number(opts.limit));
-      const skip = Math.max(0, Number(opts.skip || 0));
+      const limit = opts.all ? Infinity : Math.max(0, limitInput);
+      const skip = Math.max(0, skipInput);
 
       const pageFetch = Math.max(50, Math.min(200, Number.isFinite(limit) ? Math.max(50, Math.ceil(limit * 3)) : 200));
 

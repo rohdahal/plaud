@@ -64,6 +64,47 @@ test("files list --json returns v1 envelope on missing auth (exit 2)", async () 
   });
 });
 
+test("files list --strict rejects invalid --sort before auth check (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["files", "list", "--strict", "--sort", "weird", "--json"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(String(parsed.error.message || ""), /--sort/);
+  });
+});
+
+test("files list --strict rejects invalid --limit before auth check (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["files", "list", "--strict", "--limit", "0", "--json"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "VALIDATION");
+    assert.match(String(parsed.error.message || ""), /--limit|--max/);
+  });
+});
+
+test("files list without --strict keeps existing auth-first behavior (exit 2)", async () => {
+  await withTempDir(async (tmp) => {
+    const r = await runCli(["files", "list", "--sort", "weird", "--json"], {
+      XDG_CONFIG_HOME: tmp,
+      PLAUD_AUTH_TOKEN: "",
+    });
+    assert.equal(r.exitCode, 2);
+    const parsed = JSON.parse(r.stdout);
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error.code, "AUTH_MISSING");
+  });
+});
+
 test("doctor --json returns v1 envelope on missing auth (exit 2)", async () => {
   await withTempDir(async (tmp) => {
     const r = await runCli(["doctor", "--json"], {
